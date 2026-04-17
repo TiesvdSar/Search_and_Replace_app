@@ -22,6 +22,79 @@ MUTED = "#64748B"
 SUCCESS = "#16A34A"
 ERROR = "#DC2626"
 
+OPTION_INFO = {
+    "Hoofdlettergevoelig": (
+        "Behandelt hoofdletters en kleine letters als verschillend.\n\n"
+        "Uit (standaard):\n"
+        "  Zoekterm 'Hallo' vindt ook 'hallo', 'HALLO', 'HaLLo'.\n\n"
+        "Aan:\n"
+        "  Zoekterm 'Hallo' vindt alleen exact 'Hallo'."
+    ),
+    "Heel woord": (
+        "Vervangt alleen complete woorden, niet als de zoekterm\n"
+        "onderdeel is van een groter woord.\n\n"
+        "Uit (standaard):\n"
+        "  Zoekterm 'kat' vervangt ook het deel 'kat' in 'skateboard'.\n\n"
+        "Aan:\n"
+        "  Zoekterm 'kat' vindt alleen het losse woord 'kat'.\n"
+        "  'skateboard' blijft ongewijzigd."
+    ),
+    "Maak backup": (
+        "Slaat een kopie op van elk bestand vóórdat het gewijzigd wordt.\n\n"
+        "Aan (standaard):\n"
+        "  'bestand.txt' krijgt een kopie 'bestand.txt.bak'.\n"
+        "  Zo kun je altijd terug naar de originele versie.\n\n"
+        "Uit:\n"
+        "  Geen kopie — wijzigingen zijn direct definitief."
+    ),
+    "Submappen doorzoeken": (
+        "Zoekt ook door alle submappen van de gekozen map.\n\n"
+        "Uit (standaard):\n"
+        "  Alleen bestanden direct in de gekozen map worden verwerkt.\n\n"
+        "Aan:\n"
+        "  Alle bestanden in de map én in alle submappen\n"
+        "  (en sub-submappen, etc.) worden verwerkt."
+    ),
+}
+
+
+class Tooltip:
+    """Lichte tooltip die verschijnt bij hover over een widget."""
+
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tip_window = None
+        widget.bind("<Enter>", self._show)
+        widget.bind("<Leave>", self._hide)
+        widget.bind("<ButtonPress>", self._hide)
+
+    def _show(self, _event=None):
+        if self.tip_window:
+            return
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() + 6
+        y = self.widget.winfo_rooty()
+
+        self.tip_window = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        tw.attributes("-topmost", True)
+
+        outer = tk.Frame(tw, bg="#1E293B", bd=0)
+        outer.pack()
+
+        tk.Label(
+            outer, text=self.text, justify=tk.LEFT,
+            bg="#1E293B", fg="#F1F5F9",
+            font=("Segoe UI", 9), padx=12, pady=8,
+            wraplength=320,
+        ).pack()
+
+    def _hide(self, _event=None):
+        if self.tip_window:
+            self.tip_window.destroy()
+            self.tip_window = None
+
 
 class MassReplaceApp:
     def __init__(self, root):
@@ -104,11 +177,19 @@ class MassReplaceApp:
             ("Submappen doorzoeken", self.opt_recursive),
         ]
         for label, var in checks:
+            group = tk.Frame(opts, bg=BG)
+            group.pack(side=tk.LEFT, padx=(0, 18))
             tk.Checkbutton(
-                opts, text=label, variable=var,
+                group, text=label, variable=var,
                 bg=BG, fg=TEXT, activebackground=BG,
                 selectcolor=CARD, font=("Segoe UI", 9),
-            ).pack(side=tk.LEFT, padx=(0, 18))
+            ).pack(side=tk.LEFT)
+            info_btn = tk.Label(
+                group, text="ⓘ", fg=ACCENT, bg=BG,
+                font=("Segoe UI", 9), cursor="hand2",
+            )
+            info_btn.pack(side=tk.LEFT, padx=(2, 0))
+            Tooltip(info_btn, OPTION_INFO[label])
 
         # ── Start button ──────────────────────────────────────────────────────
         tk.Button(
